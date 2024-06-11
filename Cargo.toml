@@ -1,0 +1,39 @@
+[package]
+name = "crabseal"
+version = "0.3.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+glf = "0.2.1"
+diesel = { version = "2.1.0", features = ["postgres", "chrono", "numeric", "num-bigint", "uuid" ] }
+dotenvy = "0.15"
+chrono = "0.4.26"
+uuid = { version = "1.4.1", features = ["serde", "v4", "fast-rng", "macro-diagnostics"] }
+fitsio = {version = "0.21.2", features = ["array"]}
+fitsio-sys = "0.5.2"
+walkdir = "2"
+npyz = "0.8.3"
+clap = {version="4.4.10", features=["derive"]}
+image = "0.24.7"
+rayon = "1.7.0"
+libc = "0.2.142"
+lzzzz = "1.0.3"
+log = "0.4"
+csv = "1.2.2"
+fern = "0.6"
+humantime = "2.1.0"
+scoped_threadpool = "0.1.9"
+pbr = "1.1.1"
+enterpolation = "0.2"
+rand = "0.8.5"
+nalgebra = "0.32.5"
+geo = "0.28.0" # This is a dependency of similari BUT the version they link against is busted!
+similari = "0.26.2"
+imageproc = "0.24.0"
+
+
+[dev-dependencies]
+postgres = "0.19.7"
+serial_test = "0.4.0"
