@@ -184,10 +184,8 @@ fn run_pipeline(ops: &MovesOps) {
                     },
                     &overlap_track_second,
                 );
-                let (trim_og, _) = node_volume_trim(&data_volume, &overlap_track_second);
 
                 let datum_trimed: DatumT = DatumT::new(&trim_data, &trim_mask);
-                let og_datum_trimed: DatumT = DatumT::new(&trim_og, &trim_mask);
 
                 if !node_reject_on_no_mask_tiny(&datum_trimed) {
                     // Decide which set this goes into.
@@ -199,41 +197,25 @@ fn run_pipeline(ops: &MovesOps) {
                         let slices =
                             node_slice_datum_overlap(&datum_trimed, ops.num_frames as usize);
                         if slices.is_some() {
-                            sink_to_npz(slices.unwrap(), &path_train, "half");
+                            sink_to_npz(slices.unwrap(), &path_train, "");
                         }
 
-                        let og_slices =
-                            node_slice_datum_overlap(&og_datum_trimed, ops.num_frames as usize);
-                        if og_slices.is_some() {
-                            sink_to_npz(og_slices.unwrap(), &path_train, "large");
-                        }
                     } else if count >= num_train && count < num_train + num_test {
                         sink_to_png(&datum_trimed, &path_test);
                         sink_to_txt(&datum_trimed, &path_test_txt);
 
                         let slices = node_slice_datum(&datum_trimed, ops.num_frames as usize);
                         if slices.is_some() {
-                            sink_to_npz(slices.unwrap(), &path_test, "half");
+                            sink_to_npz(slices.unwrap(), &path_test, "");
                         }
 
-                        let og_slices =
-                            node_slice_datum_overlap(&og_datum_trimed, ops.num_frames as usize);
-                        if og_slices.is_some() {
-                            sink_to_npz(og_slices.unwrap(), &path_test, "large");
-                        }
                     } else {
                         sink_to_png(&datum_trimed, &path_val);
                         sink_to_txt(&datum_trimed, &path_val_txt);
 
                         let slices = node_slice_datum(&datum_trimed, ops.num_frames as usize);
                         if slices.is_some() {
-                            sink_to_npz(slices.unwrap(), &path_val, "half");
-                        }
-
-                        let og_slices =
-                            node_slice_datum_overlap(&og_datum_trimed, ops.num_frames as usize);
-                        if og_slices.is_some() {
-                            sink_to_npz(og_slices.unwrap(), &path_val, "large");
+                            sink_to_npz(slices.unwrap(), &path_val, "");
                         }
                     }
                 }

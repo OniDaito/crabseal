@@ -204,29 +204,26 @@ fn run_pipeline(ops: &MovesOps) {
                     if count < num_train {
                         sink_to_png(&datum_trimed, &path_train);
                         sink_to_txt(&datum_trimed, &path_train_txt);
-                        sink_to_npz_volume(trim_og, &path_train, "_og");
                         let slices =
                             node_slice_datum_overlap(&datum_trimed, ops.num_frames as usize);
                         if slices.is_some() {
-                            sink_to_npz(slices.unwrap(), &path_train, "half");
+                            sink_to_npz(slices.unwrap(), &path_train, "");
                         }
                     } else if count >= num_train && count < num_train + num_test {
                         sink_to_png(&datum_trimed, &path_test);
                         sink_to_txt(&datum_trimed, &path_test_txt);
-                        sink_to_npz_volume(trim_og, &path_test, "_og");
                         let slices =
                             node_slice_datum_overlap(&datum_trimed, ops.num_frames as usize);
                         if slices.is_some() {
-                            sink_to_npz(slices.unwrap(), &path_test, "half");
+                            sink_to_npz(slices.unwrap(), &path_test, "");
                         }
                     } else {
                         sink_to_png(&datum_trimed, &path_val);
                         sink_to_txt(&datum_trimed, &path_val_txt);
-                        sink_to_npz_volume(trim_og, &path_val, "_og");
                         let slices =
                             node_slice_datum_overlap(&datum_trimed, ops.num_frames as usize);
                         if slices.is_some() {
-                            sink_to_npz(slices.unwrap(), &path_val, "half");
+                            sink_to_npz(slices.unwrap(), &path_val, "");
                         }
                     }
                 }
