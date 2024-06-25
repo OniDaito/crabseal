@@ -1,5 +1,5 @@
 # CrabSeal
-CrabSeal focuses on generating a dataset from an already ingested set held inside a postgresql database and a directory full of FITS image files. If you have ingested data using the *SealHits* project, you can create a dataset for *OceanMotion* using this program.
+CrabSeal focuses on generating a dataset from an already ingested set held inside a postgresql database and a directory full of FITS image files. If you have ingested data using the [SealHits](https://github.com/OniDaito/sealhits) project, you can create a dataset for [OceanMotion](https://github.com/OniDaito/oceanmotion) using this program.
 
 Crabseal comprises two programs - *pipeline* and *pipeline_sector*. Both a very similar. The first creates images of the same dimensions as these passed in. The second version creates images that are smaller than these input - a map of sectors or segments. Depending on the version of *OceanMotion* you are running, you'll need one or the other.
 
@@ -59,7 +59,7 @@ Assuming you have created the output directory and placed the *filter.sql* and *
 
     cargo run --release --bin pipeline -- -f ~/location/of/the/fits/images -o + ~/your/output/dir --width 256 --sqlfilter ~/your/output/dir/filter.sql --numframes 16
 
-The numframes parameter refers to how long you want the data to be, in this case 16 frames or roughly 4 seconds.
+The numframes parameter refers to how long you want the data to be, in this case 16 frames.
 
 ### pipeline_sector
 The same as pipeline, but the sectorsize parameter is important. This creates sectors at the full size, before the *width* transform, so in the case below, a sector size of 32 will appear as 16 as the width paramter is set to 256 - half of 512.
@@ -71,7 +71,7 @@ The same as pipeline, but the sectorsize parameter is important. This creates se
 Large datasets will take a while to generate. Groups selected from the database will be pre-processed. This takes fewer than 5 minutes for a set of 7000 or so items. The same number of items will take around 30 minutes to generate the final NPZ files during the second and final processing stage. Bigger sets of 10,000 items or so may take a couple of hours to generate.
 
 ## Testing
-Testing requires the [sealhits_testdata repository](https://gitlab.st-andrews.ac.uk/biology/smru/bjb8/sealhits_testdata). This is quite a large repository and requires git lfs to be installed. It includes images (as FITS files), GLFs, PGDFs and the schema & data for a postgresql test database. This database must be setup before testing can begin. Please refer to the README inthat particular project when setting up the database for testing. Once this is setup on your test machine, the pytest will create a temporary database called *testseals*. Make sure this database does not already exist.
+Testing requires the [sealhits_testdata zip file](https://zenodo.org/records/12518315). This is quite a large repository and requires git lfs to be installed. It includes images (as FITS files), GLFs, PGDFs and the schema & data for a postgresql test database. This database must be setup before testing can begin. Please refer to the README inthat particular project when setting up the database for testing. Once this is setup on your test machine, the pytest will create a temporary database called *testseals*. Make sure this database does not already exist.
 
 You will need to export the username and password for your particular postgresql setup. This is done with a couple of environment variables
 
@@ -115,8 +115,3 @@ The url is in the format:
 Generate schemas with the following command
 
     diesel print-schema > src/schema.rs
-
-## Notes
-
-*[https://diesel.rs/guides/getting-started](https://diesel.rs/guides/getting-started)
-*[https://docs.rs/diesel/latest/diesel/](https://docs.rs/diesel/latest/diesel/)

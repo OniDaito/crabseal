@@ -321,72 +321,131 @@ mod tests {
         fs::File,
         io::{BufRead, BufReader},
         path::Path,
+        env,
+        panic,
+        str::FromStr,
     };
     use walkdir::WalkDir;
+    use postgres::{Client, NoTls};
+    use serial_test::serial;
+
+    // This closure and catch lets us catch failures but always fire off the teardown.
+    // https://medium.com/@ericdreichert/test-setup-and-teardown-in-rust-without-a-framework-ba32d97aa5ab
+    fn run_test<T>(test: T) -> ()
+    where T: FnOnce() -> () + panic::UnwindSafe {
+        setup();
+
+        let result = panic::catch_unwind(|| {
+            test()
+        });
+
+        teardown();
+        assert!(result.is_ok())
+    }
+
+    fn setup() {
+        // Load the test database into PostgreSQL just like with Sealhits
+        let mut d = PathBuf::from(env::var("SEALHITS_TESTDATA_DIR").unwrap());
+        d.push("testseals.sql");
+        let sql_file_content = std::fs::read_to_string(d.as_path()).unwrap();
+        let pg_user = env::var("SEALHITS_TESTDATA_PGUSER").unwrap();
+        let pg_pass = env::var("SEALHITS_TESTDATA_PGPASS").unwrap();
+        let pg_str: String = String::from_str("host=localhost user=").unwrap();
+        let conn_string = pg_str + &pg_user + " password=" + &pg_pass;
+        let mut client = Client::connect(conn_string.as_str(), NoTls).unwrap();
+        client
+            .batch_execute("CREATE USER testseals WITH PASSWORD 'testseals';")
+            .unwrap();
+        client.batch_execute("CREATE DATABASE testseals WITH OWNER testseals TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'C.UTF-8'").unwrap();
+        client.close().unwrap();
+
+        let conn_string2 = conn_string + " dbname=testseals";
+        client = Client::connect(conn_string2.as_str(), NoTls).unwrap();
+        client.batch_execute(&sql_file_content).unwrap();
+        client.close().unwrap();
+    }
+
+
+    fn teardown() {
+        // Remove the testseals database and user
+        let pg_user = env::var("SEALHITS_TESTDATA_PGUSER").unwrap();
+        let pg_pass = env::var("SEALHITS_TESTDATA_PGPASS").unwrap();
+        let pg_str: String = String::from_str("host=localhost user=").unwrap();
+        let conn_string = pg_str + &pg_user + " password=" + &pg_pass;
+        let mut client = Client::connect(conn_string.as_str(), NoTls).unwrap();
+        client.batch_execute("drop database testseals;").unwrap();
+        client.batch_execute("drop user testseals;").unwrap();
+    }
+
 
     #[test]
+    #[serial]
     fn test_generators() {
-        let dbuser = "sealhits";
-        let dbpass = "kissfromarose";
-        let dbname = "sealhits";
-        let sonar_ids = vec![853, 854];
-        let fits_path = "/home/oni/sealz/fits";
-        let dataset_limit = 10;
-        let mut img_paths: HashMap<String, PathBuf> = HashMap::new();
-        let mut code_to_id: HashMap<String, u8> = HashMap::new();
+        run_test(|| {
+            let pg_user = env::var("SEALHITS_TESTDATA_PGUSER").unwrap();
+            let pg_pass = env::var("SEALHITS_TESTDATA_PGPASS").unwrap();
 
-        // Write to a cache file or read from it, if it already exits.
-        let cache_path = "crabseal.cache";
+            let sonar_ids = vec![853, 854];
+            let mut d = PathBuf::from(env::var("SEALHITS_TESTDATA_DIR").unwrap());
+            d.push("fits");
+            let fits_path = d.as_os_str();
+            let dataset_limit = 10;
+            let mut img_paths: HashMap<String, PathBuf> = HashMap::new();
+            let mut code_to_id: HashMap<String, u8> = HashMap::new();
 
-        if Path::new(cache_path).exists() {
-            let file = File::open(cache_path).unwrap();
-            let reader = BufReader::new(file);
+            // Write to a cache file or read from it, if it already exits.
+            let cache_path = "crabseal.cache";
 
-            for res in reader.lines() {
-                let line = res.unwrap().replace('\n', "");
-                let tokens = line.split(",").collect::<Vec<&str>>();
-                img_paths.insert(tokens[0].to_string(), Path::new(tokens[1]).to_path_buf());
-            }
-        } else {
-            for file in WalkDir::new(fits_path)
-                .into_iter()
-                .filter_map(|file| file.ok())
-            {
-                if file.metadata().unwrap().is_file() {
-                    // This conversion to string from osstr is absolutely stupid!
-                    let mut key = file.file_name().to_str().map(|s| s.to_string()).unwrap();
-                    key = key.replace(".lz4", "");
-                    img_paths.insert(key, file.path().to_path_buf());
+            if Path::new(cache_path).exists() {
+                let file = File::open(cache_path).unwrap();
+                let reader = BufReader::new(file);
+
+                for res in reader.lines() {
+                    let line = res.unwrap().replace('\n', "");
+                    let tokens = line.split(",").collect::<Vec<&str>>();
+                    img_paths.insert(tokens[0].to_string(), Path::new(tokens[1]).to_path_buf());
+                }
+            } else {
+                for file in WalkDir::new(fits_path)
+                    .into_iter()
+                    .filter_map(|file| file.ok())
+                {
+                    if file.metadata().unwrap().is_file() {
+                        // This conversion to string from osstr is absolutely stupid!
+                        let mut key = file.file_name().to_str().map(|s| s.to_string()).unwrap();
+                        key = key.replace(".lz4", "");
+                        img_paths.insert(key, file.path().to_path_buf());
+                    }
                 }
             }
-        }
 
-        let code_class_path = "code_to_class.csv";
+            let code_class_path = "code_to_class.csv";
 
-        if Path::new(code_class_path).exists() {
-            let file = File::open(code_class_path).unwrap();
-            let reader = BufReader::new(file);
+            if Path::new(code_class_path).exists() {
+                let file = File::open(code_class_path).unwrap();
+                let reader = BufReader::new(file);
 
-            for res in reader.lines() {
-                let line = res.unwrap().replace('\n', "");
-                let tokens = line.split(",").collect::<Vec<&str>>();
-                code_to_id.insert(tokens[0].to_string(), tokens[1].parse::<u8>().unwrap());
+                for res in reader.lines() {
+                    let line = res.unwrap().replace('\n', "");
+                    let tokens = line.split(",").collect::<Vec<&str>>();
+                    code_to_id.insert(tokens[0].to_string(), tokens[1].parse::<u8>().unwrap());
+                }
             }
-        }
 
-        let mut generator = GeneratorGroups::new(
-            dbuser,
-            dbpass,
-            dbname,
-            &sonar_ids,
-            &img_paths,
-            4,
-            dataset_limit,
-            1632,
-            &None,
-            4,
-            &code_to_id,
-        );
-        let _ = generator.next();
+            let mut generator = GeneratorGroups::new(
+                pg_user.as_str(),
+                pg_pass.as_str(),
+                "testseals",
+                &sonar_ids,
+                &img_paths,
+                4,
+                dataset_limit,
+                1632,
+                &None,
+                4,
+                &code_to_id,
+            );
+            let _ = generator.next();
+        });
     }
 }

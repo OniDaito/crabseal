@@ -368,8 +368,8 @@ mod tests {
         let mut d = PathBuf::from(env::var("SEALHITS_TESTDATA_DIR").unwrap());
         d.push("fits/2023_05_28/2023_05_28_22_52_40_711_854.fits.lz4");
         let fits = read_fits(Path::new(&d)).unwrap();
-        assert!(img_to_fits(Path::new("test.fits"), &fits).is_ok());
-        let saved_fits = read_fits(Path::new("test.fits")).unwrap();
+        assert!(img_to_fits(Path::new("./tests/test.fits"), &fits).is_ok());
+        let saved_fits = read_fits(Path::new("./tests/test.fits")).unwrap();
         assert_eq!(saved_fits.dimensions().0, 512);
     }
 }
